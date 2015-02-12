@@ -1,0 +1,20 @@
+# This list needs to be balanced for the resorting algorithm to work.
+# i.e. any entry must appear on both the left and the right.
+# Antenna numbers start from one.
+# Correlator input, Signal line
+249A 252A
+249B 252B
+250A 249A
+250B 249B
+251A 254A
+251B 254B
+252A 250A
+252B 250B
+253A 255A
+253B 255B
+254A 251A
+254B 251B
+255A 256A
+255B 256B
+256A 253A
+256B 253B
