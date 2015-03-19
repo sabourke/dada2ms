@@ -22,5 +22,5 @@ private:
     int index(int ant, int chan, int pol1, int pol2);
 };
 
-#endif // BCALTABLE_H_
+#endif // JCALTABLE_H_
 
