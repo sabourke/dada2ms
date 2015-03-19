@@ -2,24 +2,22 @@
 #define BCALTABLE_H_
 
 #include <complex>
+#include <vector>
 
 class BCalTable {
 public:
     BCalTable(char const* filename);
-    ~BCalTable();
+    ~BCalTable() {}
 
-    int Nant() {return _Nant;}
-    int Nchan() {return _Nchan;}
-    bool flag(int ant, int chan, int pol) {return _flags[index(ant,chan,pol)];}
-    std::complex<float> gain(int ant, int chan, int pol) {return _gains[index(ant,chan,pol)];}
+    int Nant() const {return _Nant;}
+    int Nchan() const {return _Nchan;}
+    std::vector<char> const& flags() const {return _flags;}
+    std::vector<std::complex<float> > const& gains() const {return _gains;}
 
 private:
     int _Nant, _Nchan;
-
-    bool* _flags; // Nant x Nchan x 2 array
-    std::complex<float>* _gains; // Nant x Nchan x 2 array
-
-    int index(int ant, int chan, int pol);
+    std::vector<char> _flags; // Nant x Nchan x 2
+    std::vector<std::complex<float> > _gains; // Nant x Nchan x 2
 };
 
 #endif // BCALTABLE_H_

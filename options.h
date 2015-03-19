@@ -22,6 +22,8 @@ struct options {
 	bool addWtSpec;    // Write a WEIGHT_SPECTRUM column
 	bool addSPW;       // Add a new SPW/DATA_DESC
 	bool applyCal;     // Apply existing calibrations during conversion
+    bool applyTTCalBandpass; // Apply existing TTCal bandpass calibration
+    bool applyTTCalPolcal;   // Apply existing TTCal polcal calibration
 	bool antsAreITRF;  // Antenna positions are ITRF (default is relative to array position)
 
 	int dataDescID;
@@ -30,6 +32,8 @@ struct options {
 	std::string configFile;
 	std::string remapFile;
 	std::string calTable;
+	std::string bcalTable; // TTCal bandpass calibration
+	std::string jcalTable; // TTCal polcal calibration
 	std::string antFile;
 	std::string msName;
 
