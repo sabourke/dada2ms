@@ -56,6 +56,9 @@ options::options(int argc, char *argv[]) :
         // Currently disabled as untested ("itrfant", po::value<std::string>(), "antenna ITRF positions (m)")
         ("remap", po::value<std::string>(&remapFile), "remap lines as per file")
         ("cal", po::value<std::string>(&calTable), "Calibrate with CASA Bandpass table")
+        // TTCal calibration options
+        ("ttcal-bandpass", po::value<std::string>(&bcalTable), "Calibrate with a TTCal bandpass file")
+        ("ttcal-polcal", po::value<std::string>(&jcalTable), "Calibrate with a TTCal polcal file")
     ;
     po::options_description poHidden("Hidden options");
     poHidden.add_options()
@@ -115,6 +118,12 @@ options::options(int argc, char *argv[]) :
 
     if (args.count("cal"))
         applyCal = true;
+
+    if (args.count("ttcal-bandpass"))
+        applyTTCalBandpass = true;
+
+    if (args.count("ttcal-polcal"))
+        applyTTCalPolcal = true;
 
     if (antsAreITRF)
         antFile = args["itrfant"].as<std::string>();

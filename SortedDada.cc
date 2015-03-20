@@ -61,4 +61,35 @@ void SortedDada::applyGains(const std::vector<std::complex<float> > &gains, cons
     mOrder.applyGains(mGains.data(), mGainFlags.data(), mOutVisFlags.data());
 }
 
+void SortedDada::applyJones(const std::vector<std::complex<float> > &gains, const std::vector<char> &gainFlags)
+{
+    int num_gains = header.nAnt() * header.nFreq() * header.nPol() * header.nPol();
+    int num_flags = header.nAnt() * header.nFreq();
+    if (gains.size() != num_gains)
+        throw std::length_error("gains vector size error in SortedDada::applyPolarizedGains");
+    if (gainFlags.size() != num_flags)
+        throw std::length_error("gainFlags vector size error in SortedDada::applyPolarizedGains");
+    if (header.nPol() != 2)
+        throw std::logic_error("must have fully polarized visibilities to apply a Jones matrix calibration");
+    mJones = gains;
+    mJonesFlags = gainFlags;
+    // Invert each Jones matrix
+    // (note this is a numerically unstable operation, however we suppose that the Jones matrices
+    // are well-conditioned such that the numerical error introduced by this operation is
+    // insignificant relative to the thermal error in the measurement)
+    for (int i=0; i<header.nAnt()*header.nFreq(); ++i) {
+        if (mJonesFlags[i] == static_cast<char>(true)) continue;
+        std::complex<float> a = mJones[4*i+0];
+        std::complex<float> b = mJones[4*i+1];
+        std::complex<float> c = mJones[4*i+2];
+        std::complex<float> d = mJones[4*i+3];
+        std::complex<float> inverse_determinant = std::complex<float>(1) / (a*d-b*c);
+        mJones[4*i+0] = +d*inverse_determinant;
+        mJones[4*i+1] = -b*inverse_determinant;
+        mJones[4*i+2] = -c*inverse_determinant;
+        mJones[4*i+3] = +a*inverse_determinant;
+    }
+    mOrder.applyJones(mJones.data(), mJonesFlags.data(), mOutVisFlags.data());
+}
+
 } // namespace dada

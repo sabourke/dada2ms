@@ -37,6 +37,9 @@
 #include "ms_funcs.h"
 #include "MSUVWGenerator.h"
 
+#include "BCalTable.h"
+#include "JCalTable.h"
+
 using namespace casa;
 
 int
@@ -142,11 +145,21 @@ main(int argc, char *argv[])
     }
 
     // Optionally apply a simple (not time variable) CASA bandpass table
-    std::vector<std::complex<float> > gain;
-    std::vector<char> calFlag;
     if (opts.applyCal) {
+        std::vector<std::complex<float> > gain;
+        std::vector<char> calFlag;
     	readCalTable(opts.calTable.c_str(), gain, calFlag);
     	dada.applyGains(gain, calFlag);
+    }
+
+    if (opts.applyTTCalBandpass) {
+        BCalTable bcal(opts.bcalTable.c_str());
+        dada.applyGains(bcal.gains(),bcal.flags());
+    }
+
+    if (opts.applyTTCalPolcal) {
+        JCalTable jcal(opts.jcalTable.c_str());
+        dada.applyJones(jcal.gains(),jcal.flags());
     }
 
     if (!opts.remapFile.empty()) {
@@ -200,7 +213,7 @@ main(int argc, char *argv[])
 
     	ms.addRow(outBaseline);
     	Array<Complex> data(IPosition(3, nCorr, nFreq, outBaseline), dada.rGetChunk(t).data(), SHARE);
-    	if (opts.applyCal) {
+        if (opts.applyCal || opts.applyTTCalBandpass || opts.applyTTCalPolcal) {
     		charVector2boolArray(charFlags, flag);
     	}
         // Create a Slicer for the current integration
