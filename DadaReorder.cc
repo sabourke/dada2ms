@@ -205,6 +205,13 @@ void DadaReorder::sortData(float *dadaArr, float *outArr)
                     outArr[offset+5] = std::imag(vyx_);
                     outArr[offset+6] = std::real(vyy_);
                     outArr[offset+7] = std::imag(vyy_);
+
+                    // Apply flags
+                    if (static_cast<bool>(mJonesFlags[ant1*mNFreq + f]) || static_cast<bool>(mJonesFlags[ant2*mNFreq + f])) {
+                        for (int i = 0; i < mNPol*mNPol; ++i) {
+                            mOutVisFlags[baseline*mNFreq*mNCorr + f*mNCorr + i] = static_cast<char>(true)
+                        }
+                    }
                 }
             }
         }
