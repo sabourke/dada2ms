@@ -21,6 +21,7 @@ public:
     void setLineMapping(const char *corrInput, const char *cable) {return mOrder.setLineMapping(corrInput, cable);};
     int setLineMappingFromFile(const char *filename) {return mOrder.setLineMappingFromFile(filename);};
     void applyGains(const std::vector<std::complex<float> > &gains, const std::vector<char> &gainFlags);
+    void applyJones(const std::vector<std::complex<float> > &gains, const std::vector<char> &gainFlags);
     void resetGains() {mOrder.resetGains();};
     std::vector<float> &rRawChunk(int index);
     std::vector<std::complex<float> > &rGetChunk(int index);
@@ -38,8 +39,10 @@ private:
     std::vector<float> mRawData;
     std::vector<std::complex<float> > mSortedData;
     std::vector<std::complex<float> > mGains;
+    std::vector<std::complex<float> > mJones;
     // std::vector<bool> is bit packed so we'll use chars
     std::vector<char> mGainFlags;
+    std::vector<char> mJonesFlags;
     std::vector<char> mOutVisFlags;
 };
 

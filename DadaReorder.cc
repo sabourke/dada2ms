@@ -113,6 +113,16 @@ void DadaReorder::applyGains(std::complex<float> *gains, char *gainFlags, char *
     mOutVisFlags = outVisFlags;
 }
 
+void DadaReorder::applyJones(std::complex<float> *jones, char *jonesFlags, char *outVisFlags)
+{
+    if (mNPol != 2)
+        throw std::logic_error("must have fully polarized visibilities to apply a Jones matrix calibration");
+    mApplyJones = true;
+    mJones = jones;
+    mJonesFlags = jonesFlags;
+    mOutVisFlags = outVisFlags;
+}
+
 void DadaReorder::sortData(float *dadaArr, float *outArr)
 {
 	if (!mIndexIsValid)
@@ -155,6 +165,46 @@ void DadaReorder::sortData(float *dadaArr, float *outArr)
                         }
                         out_offset += 2;
                     }
+                }
+                if (mApplyJones) {
+                    // mApplyJones is only true if mNPol is 2.
+                    // Therefore we can specialize on the case of 2x2 correlation products.
+
+                    // Start be rewinding the offset counter so that we can take another pass
+                    // over the same set of visibilities.
+                    int offset = out_offset - 2*mNPol*mNPol;
+                    int j0_offset = ant1*mNFreq*mNPol*mNPol + f*mNPol*mNPol;
+                    int j1_offset = ant2*mNFreq*mNPol*mNPol + f*mNPol*mNPol;
+
+                    // Now compute the matrix product (J0)(V)(J1)*
+                    std::complex<float> vxx = std::complex<float>(outArr[offset+0],outArr[offset+1]);
+                    std::complex<float> vxy = std::complex<float>(outArr[offset+2],outArr[offset+3]);
+                    std::complex<float> vyx = std::complex<float>(outArr[offset+4],outArr[offset+5]);
+                    std::complex<float> vyy = std::complex<float>(outArr[offset+6],outArr[offset+7]);
+
+                    std::complex<float> a0 = mJones[j0_offset+0];
+                    std::complex<float> b0 = mJones[j0_offset+1];
+                    std::complex<float> c0 = mJones[j0_offset+2];
+                    std::complex<float> d0 = mJones[j0_offset+3];
+
+                    std::complex<float> a1 = std::conj(mJones[j1_offset+0]);
+                    std::complex<float> b1 = std::conj(mJones[j1_offset+1]);
+                    std::complex<float> c1 = std::conj(mJones[j1_offset+2]);
+                    std::complex<float> d1 = std::conj(mJones[j1_offset+3]);
+
+                    std::complex<float> vxx_ = a0*vxx*a1 + b0*vyx*a1 + a0*vxy*b1 + b0*vyy*b1;
+                    std::complex<float> vxy_ = a0*vxx*c1 + b0*vyx*c1 + a0*vxy*d1 + b0*vyy*d1;
+                    std::complex<float> vyx_ = c0*vxx*a1 + d0*vyx*a1 + c0*vxy*b1 + d0*vyy*b1;
+                    std::complex<float> vyy_ = c0*vxx*c1 + d0*vyx*c1 + c0*vxy*d1 + d0*vyy*d1;
+
+                    outArr[offset+0] = std::real(vxx_);
+                    outArr[offset+1] = std::imag(vxx_);
+                    outArr[offset+2] = std::real(vxy_);
+                    outArr[offset+3] = std::imag(vxy_);
+                    outArr[offset+4] = std::real(vyx_);
+                    outArr[offset+5] = std::imag(vyx_);
+                    outArr[offset+6] = std::real(vyy_);
+                    outArr[offset+7] = std::imag(vyy_);
                 }
             }
         }

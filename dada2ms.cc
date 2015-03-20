@@ -38,7 +38,7 @@
 #include "MSUVWGenerator.h"
 
 #include "BCalTable.h"
-//#include "JCalTable.h"
+#include "JCalTable.h"
 
 using namespace casa;
 
@@ -157,9 +157,10 @@ main(int argc, char *argv[])
         dada.applyGains(bcal.gains(),bcal.flags());
     }
 
-    //if (opts.applyTTCalPolcal) {
-    //    JCalTable jcal(opts.jcalTable.c_str());
-    //}
+    if (opts.applyTTCalPolcal) {
+        JCalTable jcal(opts.jcalTable.c_str());
+        dada.applyJones(jcal.gains(),jcal.flags());
+    }
 
     if (!opts.remapFile.empty()) {
         dada.setLineMappingFromFile(opts.remapFile.c_str());

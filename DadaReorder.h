@@ -22,20 +22,24 @@ public:
     void setLineMapping(const char *corrInput, const char *cable);
     int setLineMappingFromFile(const char *filename);
     void applyGains(std::complex<float> *gains, char *gainFlags, char *outVisFlags);
+    void applyJones(std::complex<float> *jones, char *JonesFlags, char *outVisFlags);
     void resetGains() {mApplyCal = false;};
+    void resetJones() {mApplyJones = false;};
     void sortData(float *inArr, float *outArr);
     static int simpleLineNum(const char *antName);
 
 private:
-    bool mApplyCal, mAutosOnly, mIndexIsValid;
+    bool mApplyCal, mApplyJones, mAutosOnly, mIndexIsValid;
     const int mNAnt, mNFreq, mNPol, mNCorr, mNBaseline;
     const int mGpuBaselines, mGpuHalfBlock; // Larger than nBaselines due to alignment
     int * const mLineMap; // Defines physically remapped lines. Eg, line X could be connected to correlator input Y
     std::vector<std::vector<int> > mBaselineIndex;
     std::vector<std::vector<int> > mConjBaseline;
     std::complex<float> *mGains;      // size MUST be nAnt * nFreq * nPol
+    std::complex<float> *mJones;      // size MUST be nAnt * nFreq * nPol * nPol
     // These are char instead of bool to be compatible with std::vector
     char *mGainFlags;                 // size MUST be nAnt * nFreq * nPol
+    char *mJonesFlags;                // size MUST be nAnt * nFreq
     char *mOutVisFlags;               // size MUST be nBaseline * nFreq * nCorr
     void buildIndex();
 };
