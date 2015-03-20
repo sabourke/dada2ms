@@ -212,8 +212,7 @@ main(int argc, char *argv[])
 
     	ms.addRow(outBaseline);
     	Array<Complex> data(IPosition(3, nCorr, nFreq, outBaseline), dada.rGetChunk(t).data(), SHARE);
-    	if (opts.applyCal) {
-            //NOTE TO SELF (MICHAEL) - WHAT IS HAPPENING HERE? ASK STEPHEN
+        if (opts.applyCal || opts.applyTTCalBandpass || opts.applyTTCalPolcal) {
     		charVector2boolArray(charFlags, flag);
     	}
         // Create a Slicer for the current integration
