@@ -209,7 +209,7 @@ void DadaReorder::sortData(float *dadaArr, float *outArr)
                     // Apply flags
                     if (static_cast<bool>(mJonesFlags[ant1*mNFreq + f]) || static_cast<bool>(mJonesFlags[ant2*mNFreq + f])) {
                         for (int i = 0; i < mNPol*mNPol; ++i) {
-                            mOutVisFlags[baseline*mNFreq*mNCorr + f*mNCorr + i] = static_cast<char>(true)
+                            mOutVisFlags[baseline*mNFreq*mNCorr + f*mNCorr + i] = static_cast<char>(true);
                         }
                     }
                 }
