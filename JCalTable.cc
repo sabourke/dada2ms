@@ -20,32 +20,24 @@ JCalTable::JCalTable(char const* filename) {
         file.read(reinterpret_cast<char*>(&_Nchan),sizeof(int));
 
         // Read in the flags
-        _flags = new bool[_Nant*_Nchan];
-        file.read(reinterpret_cast<char*>(_flags), _Nant*_Nchan*sizeof(bool));
+        bool bool_flags[_Nant*_Nchan];
+        _flags = vector<char>(_Nant*_Nchan);
+        file.read(reinterpret_cast<char*>(bool_flags), _Nant*_Nchan*sizeof(bool));
+        for (int i = 0; i < _Nant*_Nchan; ++i) {
+            _flags[i] = static_cast<char>(bool_flags[i]);
+        }
 
         // Read in the gains
         float float_gains[_Nant*_Nchan*2*2*2];
-        _gains = new complex<float>[_Nant*_Nchan*2*2];
+        _gains = vector<complex<float> >(_Nant*_Nchan*2*2);
         file.read(reinterpret_cast<char*>(float_gains), _Nant*_Nchan*2*2*2*sizeof(float));
-        for (int i = 0; i < _Nant; ++i) {
-            for (int j = 0; j < _Nchan; ++j) {
-                for (int pol1 = 0; pol1 < 2; ++pol1) {
-                    for (int pol2 = 0; pol1 < 2; ++pol1) {
-                        int idx = index(i,j,pol1,pol2);
-                        _gains[idx] = complex<float>(float_gains[2*idx],float_gains[2*idx+1]);
-                    }
-                }
-            }
+        for (int i = 0; i < _Nant*_Nchan*2*2; ++i) {
+            _gains[i] = complex<float>(float_gains[2*i],float_gains[2*i+1]);
         }
     }
     else {
         throw invalid_argument("Could not open calibration table.");
     }
-}
-
-JCalTable::~JCalTable() {
-    delete[] _flags;
-    delete[] _gains;
 }
 
 int JCalTable::index(int ant, int chan, int pol1, int pol2) {
