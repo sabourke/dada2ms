@@ -31,7 +31,7 @@ inline double radians(double degrees);
 double seaLevel(double latitude);
 casa::Matrix<double> readAnts(const char *filename, int nAnt);
 casa::Matrix<double> zenithUVWs(casa::Matrix<double> antPos);
-casa::Matrix<double> itrfAnts(casa::Matrix<double> antPos, double longitude, double latitude, double altitude);
+casa::Matrix<double> itrfAnts(casa::Matrix<double> antPos, int utmzone);
 void utm2latlong(int utmzone, double northing, double easting, double* latitude, double* longitude);
 int addSourceTab(casa::MeasurementSet &ms);
 int fillAntTab(casa::MSAntenna &ant, int nAnt, casa::Matrix<double> itrfPos);

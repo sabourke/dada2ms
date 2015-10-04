@@ -67,8 +67,10 @@ main(int argc, char *argv[])
     	outBaseline = nBaseline;
     }
     MeasurementSet ms;
-    MPosition arrPos(Quantity(opts.altitude, "m"), Quantity(opts.longitude, "deg"), Quantity(opts.latitude, "deg"), MPosition::WGS84);
     Matrix<Double> antPos = readAnts(opts.antFile.c_str(), nAnt);
+    double array_longitude, array_latitude;
+    utm2latlong(opts.utmzone,antPos(0,0)/1e3,antPos(1,0)/1e3,&array_latitude,&array_longitude);
+    MPosition arrPos(Quantity(antPos(2,0), "m"), Quantity(array_longitude, "deg"), Quantity(array_latitude, "deg"), MPosition::WGS84);
     if (opts.append) {
         ms = MeasurementSet(opts.msName, Table::Update);
         updateObservationTab(ms.observation(), startTime, finishTime);
@@ -90,7 +92,7 @@ main(int argc, char *argv[])
         if (opts.antsAreITRF) {
         	fillAntTab(ms.antenna(), nAnt, antPos);
         } else {
-        	Matrix<Double> itrf = itrfAnts(antPos, opts.longitude, opts.latitude, opts.altitude);
+            Matrix<Double> itrf = itrfAnts(antPos, opts.utmzone);
            	fillAntTab(ms.antenna(), nAnt, itrf);
         }
         ms.dataDescription().addRow(); // One default row should do

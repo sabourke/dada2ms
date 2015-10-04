@@ -100,37 +100,27 @@ zenithUVWs(Matrix<Double> antPos)
 }
 
 // Calculate ITRF positions for antennas.
+// antPos is the NAD83 northing, easting, elevation of each antenna
+// utmzone is the UTM zone in which the array is located
 // antPos is offsets in meters from the array lon,lat,alt.
-// Done by putting the antenna offset from (0,0) lon,lat and rotating
-// to the array postion.
-// We then have to jump through a few casacore hoops to convert to ITRF.
 Matrix<Double>
-itrfAnts(Matrix<Double> antPos, double longitude, double latitude, double altitude)
+itrfAnts(Matrix<Double> antPos, int utmzone)
 {
     int nAnt = antPos.ncolumn();
-    // Origin is the centre of the earth.
-    // X is towards 0 Lat, O Lon.
-    // Y is towards 0 Lat, 90E Lon.
-    // Z is towards North Pole.
-    Matrix<Double> rLat = Rot3D(1, -radians(latitude)); // Negation to rotate anti-clockwise. i.e. towards porth pole
-    Matrix<Double> rLon = Rot3D(2, radians(longitude));
-    double seaLev = seaLevel(latitude);
     MPosition::Convert wgs2itrf(MPosition::WGS84, MPosition::ITRF); // conversion machine
     Matrix<Double> itrf(3,nAnt);
 
-    Vector<Double> currPos(3), rotPos(3), pos(3);
+    double northing, easting, elevation;
+    double latitude, longitude;
     for (int i=0; i<nAnt; i++) {
-        // Ant offsets are E,N,Alt. We want XYZ as defined above
-        currPos(0) = antPos(2,i);
-        currPos(1) = antPos(0,i);
-        currPos(2) = antPos(1,i);
-
-        currPos(0) += seaLev + altitude;
-        rotPos = product(rLon, product(rLat, currPos));
-        MVPosition posVectWGS(rotPos(0), rotPos(1), rotPos(2));
-        // MPosition doesn't have a cartesian vector constructor, need lenght, angles.
-        // WGS84 height is relative to sea level so subtract it out
-        MPosition posWGS(posVectWGS.getLength("m") - Quantity(seaLev,"m"), posVectWGS.getAngle(), MPosition::WGS84);
+        northing  = antPos(0,i);
+        easting   = antPos(1,i);
+        elevation = antPos(2,i);
+        utm2latlong(utmzone,northing/1e3,easting/1e3,&latitude,&longitude);
+        MPosition posWGS(Quantity(elevation,"m"),
+                         Quantity(longitude,"deg"),
+                         Quantity(latitude,"deg"),
+                         MPosition::WGS84);
         MPosition posITRF = wgs2itrf(posWGS);
         Vector<Double> posVectITRF = posITRF.get("m").getValue();
         itrf(0,i) = posVectITRF(0);

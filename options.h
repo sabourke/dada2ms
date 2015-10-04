@@ -11,9 +11,7 @@
 namespace dada2ms {
 
 struct options {
-	double latitude;
-	double longitude;
-	double altitude;
+    int utmzone;
 
 	bool append;       // Append to an existing MS
 	bool firstOnly;    // Take only first integration

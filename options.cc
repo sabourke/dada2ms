@@ -15,9 +15,7 @@ namespace dada2ms {
 static const char * const default_config_file = "dada2ms.cfg";
 
 options::options(int argc, char *argv[]) :
-    latitude(0),
-    longitude(0),
-    altitude(0),
+    utmzone(0),
     append(false),
     firstOnly(false),
     autosOnly(false),
@@ -49,10 +47,8 @@ options::options(int argc, char *argv[]) :
     ;
     po::options_description poConfig("Configuration options");
     poConfig.add_options()
-        ("longitude", po::value<double>(&longitude), "longitude of array (WGS84)")
-        ("latitude", po::value<double>(&latitude), "latitude of array (WGS84)")
-        ("altitude", po::value<double>(&altitude), "altitude of array (WGS84)")
-        ("antfile", po::value<std::string>(), "antenna offsets from array position (m)")
+        ("utmzone", po::value<int>(&utmzone), "utm zone of array (NAD83)")
+        ("antfile", po::value<std::string>(), "antenna positions (NAD83 northing, easting, and elevation all in m)")
         // Currently disabled as untested ("itrfant", po::value<std::string>(), "antenna ITRF positions (m)")
         ("remap", po::value<std::string>(&remapFile), "remap lines as per file")
         ("cal", po::value<std::string>(&calTable), "Calibrate with CASA Bandpass table")
