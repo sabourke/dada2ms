@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iomanip>
 #include <map>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
@@ -137,6 +138,61 @@ itrfAnts(Matrix<Double> antPos, double longitude, double latitude, double altitu
         itrf(2,i) = posVectITRF(2);
     }
     return itrf;
+}
+
+// Convert the given northing and easting (in km) to a latitude and longitude (in degrees).
+// This function only works in the northern hemisphere and is entirely based on
+// https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system
+void
+utm2latlong(int utmzone, double northing, double easting,
+            double* latitude, double* longitude)
+{
+    double N = northing;
+    double E = easting;
+
+    double a = 6378.137; // equatorial radius (km)
+    double f = 1/298.257223563; // flattening
+    double k0 = 0.9996;
+    double N0 = 0; // convention for the northern hemisphere
+    double E0 = 500;
+
+    double n1 = f/(2-f);
+    double n2 = n1*n1; // n^2
+    double n3 = n2*n1; // n^3
+    double n4 = n2*n2; // n^4
+
+    double A = a/(1+n1) * (1 + n2/4 + n4/64);
+
+    double beta[] = {1./2*n1 -  2./3*n2 +  37./96*n3,
+                               1./48*n2 -   1./15*n3,
+                                          17./480*n3};
+    double delta[]  = {2*n1 - 2./3*n2 -      2*n3,
+                              7./3*n2 -   8./5*n3,
+                                        56./15*n3};
+
+    double  xi = (N-N0)/(k0*A);
+    double eta = (E-E0)/(k0*A);
+
+    double  xi_  =  xi;
+    double eta_  = eta;
+    double sigma = 1.0;
+    double tau   = 0.0;
+    for (int j = 1; j <= 3; ++j)
+    {
+        xi_   -=     beta[j-1]*sin(2*j*xi)*cosh(2*j*eta);
+        eta_  -=     beta[j-1]*cos(2*j*xi)*sinh(2*j*eta);
+        sigma -= 2*j*beta[j-1]*cos(2*j*xi)*cosh(2*j*eta);
+        tau   += 2*j*beta[j-1]*sin(2*j*xi)*sinh(2*j*eta);
+    }
+
+    double chi = asin(sin(xi_)/cosh(eta_));
+    *latitude = chi;
+    for (int j = 1; j <= 3; ++j)
+    {
+        *latitude += delta[j-1]*sin(2*j*chi);
+    }
+    *latitude *= 180/M_PI;
+    *longitude = utmzone*6 - 183 + atan(sinh(eta_)/cos(xi_))*180/M_PI;
 }
 
 
