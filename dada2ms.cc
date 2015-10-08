@@ -161,11 +161,7 @@ main(int argc, char *argv[])
 
     // Arrays common to all integrations
     Matrix<Double> uvws;
-    if (opts.autosOnly) {
-    	uvws = Matrix<Double>(3, outBaseline, 0); // All zeros
-    } else {
-    	uvws = zenithUVWs(antPos);
-    }
+    uvws = Matrix<Double>(3, outBaseline, 0); // All zeros initially
     Vector<Double> interval(outBaseline, intTime);
     Matrix<Float> unity2d(nCorr, outBaseline, 1.0);
     Cube<Float> unity3d(nCorr, nFreq, outBaseline, 1.0);
@@ -210,9 +206,7 @@ main(int argc, char *argv[])
         IPosition currIntLength(1,outBaseline);
         IPosition currIntStride(1,1);
         Slicer currIntSlicer(currIntStart, currIntLength, currIntStride);
-        if (!opts.antsAreITRF) {
-        	msCols.uvw().putColumnRange(currIntSlicer, uvws);
-        }
+        msCols.uvw().putColumnRange(currIntSlicer, uvws);
         msCols.flag().putColumnRange(currIntSlicer, flag);
         msCols.weight().putColumnRange(currIntSlicer, unity2d);
         msCols.sigma().putColumnRange(currIntSlicer, unity2d);
@@ -237,8 +231,9 @@ main(int argc, char *argv[])
         }
     }
 
-    // FIXME: Currently broken
-    if (opts.antsAreITRF) {
+    // If we're only grabbing the autocorrelations, the uvws are already set
+    // to zero so there is no need to calculate them.
+    if (!opts.autosOnly) {
     	MSUVWGenerator uvwGen(msCols, MBaseline::J2000, Muvw::J2000);
     	Vector<Int> flds(nTime);
     	for (int i=0; i<nTime; i++) {
