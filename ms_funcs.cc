@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iomanip>
 #include <map>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <stdexcept>
@@ -99,37 +100,27 @@ zenithUVWs(Matrix<Double> antPos)
 }
 
 // Calculate ITRF positions for antennas.
+// antPos is the NAD83 northing, easting, elevation of each antenna
+// utmzone is the UTM zone in which the array is located
 // antPos is offsets in meters from the array lon,lat,alt.
-// Done by putting the antenna offset from (0,0) lon,lat and rotating
-// to the array postion.
-// We then have to jump through a few casacore hoops to convert to ITRF.
 Matrix<Double>
-itrfAnts(Matrix<Double> antPos, double longitude, double latitude, double altitude)
+itrfAnts(Matrix<Double> antPos, int utmzone)
 {
     int nAnt = antPos.ncolumn();
-    // Origin is the centre of the earth.
-    // X is towards 0 Lat, O Lon.
-    // Y is towards 0 Lat, 90E Lon.
-    // Z is towards North Pole.
-    Matrix<Double> rLat = Rot3D(1, -radians(latitude)); // Negation to rotate anti-clockwise. i.e. towards porth pole
-    Matrix<Double> rLon = Rot3D(2, radians(longitude));
-    double seaLev = seaLevel(latitude);
     MPosition::Convert wgs2itrf(MPosition::WGS84, MPosition::ITRF); // conversion machine
     Matrix<Double> itrf(3,nAnt);
 
-    Vector<Double> currPos(3), rotPos(3), pos(3);
+    double northing, easting, elevation;
+    double latitude, longitude;
     for (int i=0; i<nAnt; i++) {
-        // Ant offsets are E,N,Alt. We want XYZ as defined above
-        currPos(0) = antPos(2,i);
-        currPos(1) = antPos(0,i);
-        currPos(2) = antPos(1,i);
-
-        currPos(0) += seaLev + altitude;
-        rotPos = product(rLon, product(rLat, currPos));
-        MVPosition posVectWGS(rotPos(0), rotPos(1), rotPos(2));
-        // MPosition doesn't have a cartesian vector constructor, need lenght, angles.
-        // WGS84 height is relative to sea level so subtract it out
-        MPosition posWGS(posVectWGS.getLength("m") - Quantity(seaLev,"m"), posVectWGS.getAngle(), MPosition::WGS84);
+        northing  = antPos(0,i);
+        easting   = antPos(1,i);
+        elevation = antPos(2,i);
+        utm2latlong(utmzone,northing/1e3,easting/1e3,&latitude,&longitude);
+        MPosition posWGS(Quantity(elevation,"m"),
+                         Quantity(longitude,"deg"),
+                         Quantity(latitude,"deg"),
+                         MPosition::WGS84);
         MPosition posITRF = wgs2itrf(posWGS);
         Vector<Double> posVectITRF = posITRF.get("m").getValue();
         itrf(0,i) = posVectITRF(0);
@@ -137,6 +128,61 @@ itrfAnts(Matrix<Double> antPos, double longitude, double latitude, double altitu
         itrf(2,i) = posVectITRF(2);
     }
     return itrf;
+}
+
+// Convert the given northing and easting (in km) to a latitude and longitude (in degrees).
+// This function only works in the northern hemisphere and is entirely based on
+// https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system
+void
+utm2latlong(int utmzone, double northing, double easting,
+            double* latitude, double* longitude)
+{
+    double N = northing;
+    double E = easting;
+
+    double a = 6378.137; // equatorial radius (km)
+    double f = 1/298.257223563; // flattening
+    double k0 = 0.9996;
+    double N0 = 0; // convention for the northern hemisphere
+    double E0 = 500;
+
+    double n1 = f/(2-f);
+    double n2 = n1*n1; // n^2
+    double n3 = n2*n1; // n^3
+    double n4 = n2*n2; // n^4
+
+    double A = a/(1+n1) * (1 + n2/4 + n4/64);
+
+    double beta[] = {1./2*n1 -  2./3*n2 +  37./96*n3,
+                               1./48*n2 -   1./15*n3,
+                                          17./480*n3};
+    double delta[]  = {2*n1 - 2./3*n2 -      2*n3,
+                              7./3*n2 -   8./5*n3,
+                                        56./15*n3};
+
+    double  xi = (N-N0)/(k0*A);
+    double eta = (E-E0)/(k0*A);
+
+    double  xi_  =  xi;
+    double eta_  = eta;
+    double sigma = 1.0;
+    double tau   = 0.0;
+    for (int j = 1; j <= 3; ++j)
+    {
+        xi_   -=     beta[j-1]*sin(2*j*xi)*cosh(2*j*eta);
+        eta_  -=     beta[j-1]*cos(2*j*xi)*sinh(2*j*eta);
+        sigma -= 2*j*beta[j-1]*cos(2*j*xi)*cosh(2*j*eta);
+        tau   += 2*j*beta[j-1]*sin(2*j*xi)*sinh(2*j*eta);
+    }
+
+    double chi = asin(sin(xi_)/cosh(eta_));
+    *latitude = chi;
+    for (int j = 1; j <= 3; ++j)
+    {
+        *latitude += delta[j-1]*sin(2*j*chi);
+    }
+    *latitude *= 180/M_PI;
+    *longitude = utmzone*6 - 183 + atan(sinh(eta_)/cos(xi_))*180/M_PI;
 }
 
 

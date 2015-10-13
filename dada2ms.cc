@@ -67,8 +67,10 @@ main(int argc, char *argv[])
     	outBaseline = nBaseline;
     }
     MeasurementSet ms;
-    MPosition arrPos(Quantity(opts.altitude, "m"), Quantity(opts.longitude, "deg"), Quantity(opts.latitude, "deg"), MPosition::WGS84);
     Matrix<Double> antPos = readAnts(opts.antFile.c_str(), nAnt);
+    double array_longitude, array_latitude;
+    utm2latlong(opts.utmzone,antPos(0,0)/1e3,antPos(1,0)/1e3,&array_latitude,&array_longitude);
+    MPosition arrPos(Quantity(antPos(2,0), "m"), Quantity(array_longitude, "deg"), Quantity(array_latitude, "deg"), MPosition::WGS84);
     if (opts.append) {
         ms = MeasurementSet(opts.msName, Table::Update);
         updateObservationTab(ms.observation(), startTime, finishTime);
@@ -90,7 +92,7 @@ main(int argc, char *argv[])
         if (opts.antsAreITRF) {
         	fillAntTab(ms.antenna(), nAnt, antPos);
         } else {
-        	Matrix<Double> itrf = itrfAnts(antPos, opts.longitude, opts.latitude, opts.altitude);
+            Matrix<Double> itrf = itrfAnts(antPos, opts.utmzone);
            	fillAntTab(ms.antenna(), nAnt, itrf);
         }
         ms.dataDescription().addRow(); // One default row should do
@@ -159,11 +161,7 @@ main(int argc, char *argv[])
 
     // Arrays common to all integrations
     Matrix<Double> uvws;
-    if (opts.autosOnly) {
-    	uvws = Matrix<Double>(3, outBaseline, 0); // All zeros
-    } else {
-    	uvws = zenithUVWs(antPos);
-    }
+    uvws = Matrix<Double>(3, outBaseline, 0); // All zeros initially
     Vector<Double> interval(outBaseline, intTime);
     Matrix<Float> unity2d(nCorr, outBaseline, 1.0);
     Cube<Float> unity3d(nCorr, nFreq, outBaseline, 1.0);
@@ -208,9 +206,7 @@ main(int argc, char *argv[])
         IPosition currIntLength(1,outBaseline);
         IPosition currIntStride(1,1);
         Slicer currIntSlicer(currIntStart, currIntLength, currIntStride);
-        if (!opts.antsAreITRF) {
-        	msCols.uvw().putColumnRange(currIntSlicer, uvws);
-        }
+        msCols.uvw().putColumnRange(currIntSlicer, uvws);
         msCols.flag().putColumnRange(currIntSlicer, flag);
         msCols.weight().putColumnRange(currIntSlicer, unity2d);
         msCols.sigma().putColumnRange(currIntSlicer, unity2d);
@@ -235,8 +231,9 @@ main(int argc, char *argv[])
         }
     }
 
-    // FIXME: Currently broken
-    if (opts.antsAreITRF) {
+    // If we're only grabbing the autocorrelations, the uvws are already set
+    // to zero so there is no need to calculate them.
+    if (!opts.autosOnly) {
     	MSUVWGenerator uvwGen(msCols, MBaseline::J2000, Muvw::J2000);
     	Vector<Int> flds(nTime);
     	for (int i=0; i<nTime; i++) {
